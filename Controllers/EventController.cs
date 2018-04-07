@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using CosmicBox.Models;
 using System;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CosmicBox.Controllers {
     [Produces("application/json")]
@@ -38,6 +39,7 @@ namespace CosmicBox.Controllers {
         /// <response code="201">Event created</response>
         /// <response code="400">Supplied event is not valid</response>
         [HttpPost]
+        [Authorize("write:events")]
         [ProducesResponseType(typeof(Event), 201)]
         [ProducesResponseType(typeof(void), 400)]
         public IActionResult Create([FromBody] Event ev) {

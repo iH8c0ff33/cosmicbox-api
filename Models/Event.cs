@@ -6,7 +6,6 @@ namespace CosmicBox.Models {
         [Key]
         public long Id { get; set; }
 
-
         [Required]
         public DateTime? Timestamp { get; set; }
 

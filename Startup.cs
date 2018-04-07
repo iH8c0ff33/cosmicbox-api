@@ -1,21 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.IO;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using CosmicBox.Models;
-using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Swagger;
-using System.IO;
+using CosmicBox.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using CosmicBox.Hubs;
+using System.Threading.Tasks;
 
 namespace CosmicBox {
     public class Startup {
-        public Startup(IConfiguration configuration) => Configuration = configuration;
+        public Startup(IHostingEnvironment env) {
+            var builder = new ConfigurationBuilder();
+
+            if (env.IsDevelopment()) {
+                builder.AddUserSecrets<Startup>();
+            }
+
+            Configuration = builder.Build();
+        }
 
         public IConfiguration Configuration { get; }
 
@@ -23,6 +31,40 @@ namespace CosmicBox {
         public void ConfigureServices(IServiceCollection services) {
             services.AddDbContext<ApiContext>(opt => opt.UseInMemoryDatabase("Events"));
             services.AddMvc();
+            services.AddSignalR();
+
+            services
+                .AddAuthentication(c => {
+                    c.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    c.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(c => {
+                    c.Authority = "https://e3auth.eu.auth0.com/";
+                    c.Audience = "https://eee.lsgalfer.it/api";
+
+                    c.Events = new JwtBearerEvents {
+                        OnMessageReceived = context => {
+                            var accessToken = context.Request.Query["access_token"];
+
+                            bool isWebSocketRequest = context.HttpContext.WebSockets.IsWebSocketRequest;
+                            if (
+                                !string.IsNullOrEmpty(accessToken) &&
+                                (isWebSocketRequest ||
+                                    context.Request.Headers["Upgrade"] == "websocket" ||
+                                    context.Request.Headers["Accept"] == "text/event-stream")
+                            ) {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
+
+            services.AddAuthorization(c => {
+                c.AddPolicy("test", p => p.RequireClaim("scope", "read:test"));
+                c.AddPolicy("write:events", p => p.RequireClaim("scope", "write:events"));
+            });
 
             services.AddSwaggerGen(c => {
                 c.SwaggerDoc("v1", new Info {
@@ -46,6 +88,11 @@ namespace CosmicBox {
 
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseAuthentication();
+            app.UseSignalR(r => {
+                r.MapHub<EventHub>("/evhub");
+            });
 
             app.UseMvc();
         }
