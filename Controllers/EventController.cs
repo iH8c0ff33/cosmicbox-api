@@ -4,6 +4,8 @@ using CosmicBox.Models;
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore.Query.Internal;
+using Microsoft.EntityFrameworkCore;
 
 namespace CosmicBox.Controllers {
     [Produces("application/json")]
@@ -122,6 +124,17 @@ namespace CosmicBox.Controllers {
             _context.Events.Remove(ev);
             _context.SaveChanges();
             return new NoContentResult();
+        }
+
+        [HttpGet("bin")]
+        public IActionResult Bin() {
+            var da = from ev in _context.Events
+                     group ev by new DateTime(ev.Timestamp.Year, ev.Timestamp.Month,
+                         ev.Timestamp.Day, ev.Timestamp.Hour, ev.Timestamp.Minute,
+                         ev.Timestamp.Second / 12) into g
+                     select new { Timestamp = g.Key, Count = g.Count() };
+
+            return new ObjectResult(da);
         }
     }
 }

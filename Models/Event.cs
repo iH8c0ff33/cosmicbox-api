@@ -7,9 +7,9 @@ namespace CosmicBox.Models {
         public long Id { get; set; }
 
         [Required]
-        public DateTime? Timestamp { get; set; }
+        public DateTime Timestamp { get; set; }
 
         [Required]
-        public double? Pressure { get; set; }
+        public double Pressure { get; set; }
     }
 }
