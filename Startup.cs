@@ -29,7 +29,7 @@ namespace CosmicBox {
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services) {
-            services.AddDbContext<ApiContext>(opt => opt.UseInMemoryDatabase("Events"));
+            services.AddDbContext<ApiContext>(opt => opt.UseSqlite("Data Source=cosmic.cb"));
             services.AddMvc();
             services.AddSignalR();
 
