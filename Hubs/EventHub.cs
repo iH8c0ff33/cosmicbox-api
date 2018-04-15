@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 namespace CosmicBox.Hubs {
     public class EventHub : Hub {
         [Authorize("write:events")]
-        public Task SendEvent(Event ev) {
+        public Task SendEvent(string ev) {
 
             return Clients.All.SendAsync("Event", ev);
         }
