@@ -1,17 +1,14 @@
 ﻿using System;
 using System.IO;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
+using System.Threading.Tasks;
+using CosmicBox.Hubs;
+using CosmicBox.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Swashbuckle.AspNetCore.Swagger;
-using CosmicBox.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using CosmicBox.Hubs;
-using System.Threading.Tasks;
 
 namespace CosmicBox {
     public class Startup {
@@ -73,7 +70,10 @@ namespace CosmicBox {
                     Title = "CosmicBox",
                     Version = "v1",
                     Description = "Used by cosmicbox clients to send data to a DB",
-                    Contact = new Contact { Name = "Daniele Monteleone", Email = "daniele.monteleone.it@gmail.com" }
+                    Contact = new Contact {
+                        Name = "Daniele Monteleone",
+                        Email = "daniele.monteleone.it@gmail.com"
+                    }
                 });
 
                 c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "CosmicBox.xml"));
