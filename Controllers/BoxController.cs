@@ -20,10 +20,8 @@ namespace CosmicBox.Controllers {
         [HttpPost, Authorize("addBoxes")]
         [ProducesResponseType(typeof(Box), 201)]
         [ProducesResponseType(typeof(void), 400)]
-        public IActionResult Create([FromBody] Box box) {
-            if (!ModelState.IsValid) {
-                return BadRequest();
-            }
+        public IActionResult Create() {
+            var box = new Box();
 
             var grant = new Grant {
                 Type = Grant.Types.Owner,
@@ -33,25 +31,25 @@ namespace CosmicBox.Controllers {
 
             _context.Boxes.Add(box);
             _context.Grants.Add(grant);
-            try {
-                _context.SaveChanges();
-            } catch (DbUpdateException) {
-                return BadRequest();
-            }
+            _context.SaveChanges();
 
-            return CreatedAtRoute("GetBox", new { id = box.Id }, box);
+            return new ObjectResult(box);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id}"), Authorize]
         [ProducesResponseType(typeof(void), 204)]
         [ProducesResponseType(typeof(void), 404)]
         public IActionResult Delete(int id) {
-            var box = _context.Boxes.FirstOrDefault(b => b.Id == id);
+            var box = _context.Boxes.Where(b => b.Id == id).Include(b => b.Grants).FirstOrDefault();
             if (box == null) {
                 return NotFound();
             }
 
-            if (!User.Claims.FirstOrDefault(c => c.Type == "scope").Value.Contains("delete:boxes")) {
+            var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            if (
+                !box.Grants.Any(g => g.Type == Grant.Types.Owner && g.Sub == sub) &&
+                !User.Claims.FirstOrDefault(c => c.Type == "scope").Value.Contains("delete:boxes")
+            ) {
                 return Forbid();
             }
 

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using CosmicBox.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CosmicBox.Controllers {
     [Route("api/[controller]"), Produces("application/json")]
@@ -33,9 +35,14 @@ namespace CosmicBox.Controllers {
                 return BadRequest();
             }
 
-            var box = _context.Boxes.FirstOrDefault(b => b.Id == run.BoxId);
+
+            var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var box = _context.Boxes.Where(b => b.Id == run.BoxId).Include(b => b.Grants).FirstOrDefault();
             if (box == null) {
                 return NotFound();
+            }
+            if (!box.Grants.Any(g => g.Sub == sub)) {
+                return Forbid();
             }
             run.Box = box;
 
