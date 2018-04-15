@@ -20,10 +20,10 @@ namespace CosmicBox.Controllers {
         [HttpPost, Authorize("addBoxes")]
         [ProducesResponseType(typeof(Box), 201)]
         [ProducesResponseType(typeof(void), 400)]
-        public IActionResult Create([FromForm] Guid uuid) {
-            var box = new Box {
-                Uuid = uuid
-            };
+        public IActionResult Create([FromBody] Box box) {
+            if (!ModelState.IsValid) {
+                return BadRequest();
+            }
 
             var grant = new Grant {
                 Type = Grant.Types.Owner,
@@ -36,22 +36,10 @@ namespace CosmicBox.Controllers {
             try {
                 _context.SaveChanges();
             } catch (DbUpdateException) {
-                return new BadRequestResult();
+                return BadRequest();
             }
 
             return CreatedAtRoute("GetBox", new { id = box.Id }, box);
-        }
-
-        [HttpGet("{id}", Name = "GetBox")]
-        [ProducesResponseType(typeof(Box), 200)]
-        [ProducesResponseType(typeof(void), 404)]
-        public IActionResult GetById(int id) {
-            var box = _context.Boxes.FirstOrDefault(b => b.Id == id);
-            if (box == null) {
-                return NotFound();
-            }
-
-            return new ObjectResult(box);
         }
 
         [HttpDelete("{id}")]
@@ -61,6 +49,10 @@ namespace CosmicBox.Controllers {
             var box = _context.Boxes.FirstOrDefault(b => b.Id == id);
             if (box == null) {
                 return NotFound();
+            }
+
+            if (!User.Claims.FirstOrDefault(c => c.Type == "scope").Value.Contains("delete:boxes")) {
+                return Forbid();
             }
 
             _context.Boxes.Remove(box);

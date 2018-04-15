@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CosmicBox.Models;
@@ -12,7 +13,15 @@ namespace CosmicBox.Controllers {
         public RunController(CosmicContext context) => _context = context;
 
         [HttpGet]
-        public IEnumerable<Run> GetAll() => _context.Runs.ToList();
+        public IActionResult GetAll([FromQuery] int boxId) {
+            var box = _context.Boxes.FirstOrDefault(b => b.Id == boxId);
+            if (box == null) {
+                return NotFound();
+            }
+
+            var runs = _context.Runs.Where(r => r.Box == box);
+            return new ObjectResult(runs);
+        }
 
         [HttpPost, Authorize]
         [ProducesResponseType(typeof(Run), 201)]
@@ -24,7 +33,7 @@ namespace CosmicBox.Controllers {
                 return BadRequest();
             }
 
-            var box = _context.Boxes.FirstOrDefault(b => b.Uuid == run.BoxUuid);
+            var box = _context.Boxes.FirstOrDefault(b => b.Id == run.BoxId);
             if (box == null) {
                 return NotFound();
             }
@@ -45,11 +54,11 @@ namespace CosmicBox.Controllers {
             return CreatedAtRoute("GetRun", new { id = run.Id }, run);
         }
 
-        [HttpGet("{id}", Name="GetRun")]
+        [HttpGet("{id}", Name = "GetRun")]
         [ProducesResponseType(typeof(Run), 200)]
         [ProducesResponseType(typeof(void), 404)]
         public IActionResult GetById(int id) {
-            var run = _context.Boxes.FirstOrDefault(r => r.Id == id);
+            var run = _context.Runs.FirstOrDefault(r => r.Id == id);
             if (run == null) {
                 return NotFound();
             }

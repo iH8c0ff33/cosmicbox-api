@@ -8,8 +8,6 @@ namespace CosmicBox.Models {
     public class Box {
         [Column("id")]
         public int Id { get; set; }
-        [Column("uuid")]
-        public Guid Uuid { get; set; }
 
         [JsonIgnore]
         public List<Run> Runs { get; set; }

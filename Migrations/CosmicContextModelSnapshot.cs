@@ -26,13 +26,7 @@ namespace CosmicBox.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnName("id");
 
-                    b.Property<Guid>("Uuid")
-                        .HasColumnName("uuid");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("Uuid")
-                        .IsUnique();
 
                     b.ToTable("boxes");
                 });

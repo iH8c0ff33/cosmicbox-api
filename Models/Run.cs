@@ -14,10 +14,8 @@ namespace CosmicBox.Models {
         [Column("end"), JsonRequired]
         public DateTime End { get; set; }
 
-        [Column("box_id")]
+        [Column("box_id"), JsonRequired]
         public int BoxId { get; set; }
-        [NotMapped, JsonRequired]
-        public Guid BoxUuid { get; set; }
         [JsonIgnore]
         public Box Box { get; set; }
 
