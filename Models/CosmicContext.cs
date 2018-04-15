@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 namespace CosmicBox.Models {
-    class CosmicContext : DbContext {
+    public class CosmicContext : DbContext {
         public DbSet<Box> Boxes { get; set; }
         public DbSet<Run> Runs { get; set; }
         public DbSet<Trace> Traces { get; set; }
@@ -12,5 +12,8 @@ namespace CosmicBox.Models {
                 b.UseNpgsql("Host=localhost;Database=cosmic;Username=eee;Password=pw1.safe");
             }
         }
+
+        protected override void OnModelCreating(ModelBuilder builder) =>
+            builder.Entity<Box>().HasIndex(b => b.Uuid).IsUnique();
     }
 }
