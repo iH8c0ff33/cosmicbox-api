@@ -29,7 +29,7 @@ namespace CosmicBox {
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services) {
-            services.AddDbContext<ApiContext>(opt => opt.UseSqlite("Data Source=cosmic.cb"));
+            services.AddDbContext<CosmicContext>();
             services.AddMvc();
             services.AddSignalR();
 
@@ -64,6 +64,8 @@ namespace CosmicBox {
             services.AddAuthorization(c => {
                 c.AddPolicy("test", p => p.RequireClaim("scope", "read:test"));
                 c.AddPolicy("write:events", p => p.RequireClaim("scope", "write:events"));
+                c.AddPolicy("add:boxes", p => p.RequireClaim("scope", "add:boxes"));
+                c.AddPolicy("delete:boxes", p => p.RequireClaim("scope", "delete:boxes"));
             });
 
             services.AddSwaggerGen(c => {
