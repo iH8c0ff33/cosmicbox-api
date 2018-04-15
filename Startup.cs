@@ -1,9 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using CosmicBox.Auth;
 using CosmicBox.Hubs;
 using CosmicBox.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +14,8 @@ using Swashbuckle.AspNetCore.Swagger;
 
 namespace CosmicBox {
     public class Startup {
+        private readonly IHostingEnvironment env;
+
         public Startup(IHostingEnvironment env) {
             var builder = new ConfigurationBuilder();
 
@@ -20,6 +24,7 @@ namespace CosmicBox {
             }
 
             Configuration = builder.Build();
+            this.env = env;
         }
 
         public IConfiguration Configuration { get; }
@@ -37,7 +42,8 @@ namespace CosmicBox {
                 })
                 .AddJwtBearer(c => {
                     c.Authority = "https://e3auth.eu.auth0.com/";
-                    c.Audience = "https://eee.lsgalfer.it/api";
+                    c.Audience = env.IsDevelopment() ? "http://dev.cosmicbox/api" :
+                        "https://eee.lsgalfer.it/api";
 
                     c.Events = new JwtBearerEvents {
                         OnMessageReceived = context => {
@@ -59,11 +65,11 @@ namespace CosmicBox {
                 });
 
             services.AddAuthorization(c => {
-                c.AddPolicy("test", p => p.RequireClaim("scope", "read:test"));
-                c.AddPolicy("write:events", p => p.RequireClaim("scope", "write:events"));
-                c.AddPolicy("add:boxes", p => p.RequireClaim("scope", "add:boxes"));
-                c.AddPolicy("delete:boxes", p => p.RequireClaim("scope", "delete:boxes"));
+                c.AddPolicy("addBoxes", p => p.AddRequirements(new HasScopeRequirement("add:boxes")));
+                c.AddPolicy("deleteBoxes", p => p.AddRequirements(new HasScopeRequirement("delete:boxes")));
             });
+
+            services.AddSingleton<IAuthorizationHandler, HasScopeHandler>();
 
             services.AddSwaggerGen(c => {
                 c.SwaggerDoc("v1", new Info {
