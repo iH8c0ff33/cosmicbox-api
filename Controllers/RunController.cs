@@ -35,7 +35,6 @@ namespace CosmicBox.Controllers {
                 return BadRequest();
             }
 
-
             var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
             var box = _context.Boxes.Where(b => b.Id == run.BoxId).Include(b => b.Grants).FirstOrDefault();
             if (box == null) {
@@ -71,6 +70,27 @@ namespace CosmicBox.Controllers {
             }
 
             return new ObjectResult(run);
+        }
+
+        [HttpDelete("{id}"), Authorize]
+        public IActionResult Delete(int id) {
+            var run = _context.Runs.Where(r => r.Id == id).Include(r => r.Box.Grants).FirstOrDefault();
+            if (run == null) {
+                return NotFound();
+            }
+
+            var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            if (!run.Box.Grants.Any(g => g.Sub == sub && (
+                    run.End < DateTime.Now ?
+                    true :
+                    g.Type == Grant.Types.Owner))
+                ) {
+                    return Forbid();
+            }
+
+            _context.Runs.Remove(run);
+            _context.SaveChanges();
+            return NoContent();
         }
     }
 }
