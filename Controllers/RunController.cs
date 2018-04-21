@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using CosmicBox.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,14 +16,14 @@ namespace CosmicBox.Controllers {
         public RunController(CosmicContext context) => _context = context;
 
         [HttpGet]
-        public IActionResult GetAll([FromQuery] int boxId) {
-            var box = _context.Boxes.FirstOrDefault(b => b.Id == boxId);
+        public async Task<IActionResult> GetAll([FromQuery] int boxId) {
+            var box = await _context.Boxes.SingleOrDefaultAsync(b => b.Id == boxId);
             if (box == null) {
                 return NotFound();
             }
 
             var runs = _context.Runs.Where(r => r.Box == box);
-            return new ObjectResult(runs);
+            return new ObjectResult(await runs.ToListAsync());
         }
 
         [HttpPost, Authorize]
@@ -30,13 +31,13 @@ namespace CosmicBox.Controllers {
         [ProducesResponseType(typeof(void), 400)]
         [ProducesResponseType(typeof(void), 404)]
         [ProducesResponseType(typeof(IEnumerable<Run>), 409)]
-        public IActionResult Create([FromBody] Run run) {
+        public async Task<IActionResult> Create([FromBody] Run run) {
             if (!ModelState.IsValid) {
                 return BadRequest();
             }
 
             var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            var box = _context.Boxes.Where(b => b.Id == run.BoxId).Include(b => b.Grants).FirstOrDefault();
+            var box = await _context.Boxes.Where(b => b.Id == run.BoxId).Include(b => b.Grants).SingleOrDefaultAsync();
             if (box == null) {
                 return NotFound();
             }
@@ -47,15 +48,15 @@ namespace CosmicBox.Controllers {
 
             var q =
                 from r in _context.Runs
-                where r.End >= run.Start && r.Box == box
+                where r.End > run.Start && r.Box == box
                 select r;
 
-            if (q.Count() > 0) {
-                return new ConflictObjectResult(q.ToList());
+            if (await q.CountAsync() > 0) {
+                return new ConflictObjectResult(await q.ToListAsync());
             }
 
             _context.Runs.Add(run);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return CreatedAtRoute("GetRun", new { id = run.Id }, run);
         }
@@ -63,8 +64,8 @@ namespace CosmicBox.Controllers {
         [HttpGet("{id}", Name = "GetRun")]
         [ProducesResponseType(typeof(Run), 200)]
         [ProducesResponseType(typeof(void), 404)]
-        public IActionResult GetById(int id) {
-            var run = _context.Runs.FirstOrDefault(r => r.Id == id);
+        public async Task<IActionResult> GetById(int id) {
+            var run = await _context.Runs.SingleOrDefaultAsync(r => r.Id == id);
             if (run == null) {
                 return NotFound();
             }
@@ -73,8 +74,8 @@ namespace CosmicBox.Controllers {
         }
 
         [HttpDelete("{id}"), Authorize]
-        public IActionResult Delete(int id) {
-            var run = _context.Runs.Where(r => r.Id == id).Include(r => r.Box.Grants).FirstOrDefault();
+        public async Task<IActionResult> Delete(int id) {
+            var run = await _context.Runs.Where(r => r.Id == id).Include(r => r.Box.Grants).SingleOrDefaultAsync();
             if (run == null) {
                 return NotFound();
             }
@@ -85,11 +86,11 @@ namespace CosmicBox.Controllers {
                     true :
                     g.Type == Grant.Types.Owner))
                 ) {
-                    return Forbid();
+                return Forbid();
             }
 
             _context.Runs.Remove(run);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return NoContent();
         }
     }
