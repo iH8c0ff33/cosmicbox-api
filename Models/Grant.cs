@@ -4,6 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace CosmicBox.Models {
     [Table("grants")]
     public class Grant {
+        public static Grant Owner(string sub, Box box) =>
+            new Grant {
+                Box = box,
+                Sub = sub,
+                Type = Types.Owner
+            };
+
         public static class Types {
             public static string Owner = "owner";
             public static string Write = "write";
@@ -20,5 +27,7 @@ namespace CosmicBox.Models {
         [Column("box_id")]
         public int BoxId { get; set; }
         public Box Box { get; set; }
+
+        public bool CanWrite() => Type == Types.Owner || Type == Types.Write;
     }
 }
