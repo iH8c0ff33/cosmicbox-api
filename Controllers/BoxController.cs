@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using CosmicBox.Auth;
 using CosmicBox.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,11 +25,7 @@ namespace CosmicBox.Controllers {
         public async Task<IActionResult> Create() {
             var box = new Box();
 
-            var grant = new Grant {
-                Type = Grant.Types.Owner,
-                Sub = User.FindFirst(ClaimTypes.NameIdentifier).Value,
-                Box = box
-            };
+            var grant = Grant.Owner(User.GetIdentifier(), box);
 
             _context.Boxes.Add(box);
             _context.Grants.Add(grant);
@@ -41,16 +38,12 @@ namespace CosmicBox.Controllers {
         [ProducesResponseType(typeof(void), 204)]
         [ProducesResponseType(typeof(void), 404)]
         public async Task<IActionResult> Delete(int id) {
-            var box = await _context.Boxes.Where(b => b.Id == id).Include(b => b.Grants).SingleOrDefaultAsync();
+            var box = await _context.Boxes.Include(b => b.Grants).SingleOrDefaultAsync(b => b.Id == id);
             if (box == null) {
                 return NotFound();
             }
 
-            var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            if (
-                !box.Grants.Any(g => g.Type == Grant.Types.Owner && g.Sub == sub) &&
-                !User.Claims.FirstOrDefault(c => c.Type == "scope").Value.Contains("delete:boxes")
-            ) {
+            if (!box.HasWriteAccess(User.GetIdentifier()) && !User.CanDeleteBoxes()) {
                 return Forbid();
             }
 

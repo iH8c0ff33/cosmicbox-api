@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using CosmicBox.Auth;
 using CosmicBox.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +24,7 @@ namespace CosmicBox.Controllers {
             }
 
             var runs = _context.Runs.Where(r => r.Box == box);
-            return new ObjectResult(await runs.ToListAsync());
+            return Ok(await runs.ToListAsync());
         }
 
         [HttpPost, Authorize]
@@ -36,12 +37,11 @@ namespace CosmicBox.Controllers {
                 return BadRequest();
             }
 
-            var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            var box = await _context.Boxes.Where(b => b.Id == run.BoxId).Include(b => b.Grants).SingleOrDefaultAsync();
+            var box = await _context.Boxes.Include(b => b.Grants).SingleOrDefaultAsync(b => b.Id == run.BoxId);
             if (box == null) {
                 return NotFound();
             }
-            if (!box.Grants.Any(g => g.Sub == sub)) {
+            if (!box.HasWriteAccess(User.GetIdentifier())) {
                 return Forbid();
             }
             run.Box = box;
@@ -70,22 +70,18 @@ namespace CosmicBox.Controllers {
                 return NotFound();
             }
 
-            return new ObjectResult(run);
+            return Ok(run);
         }
 
         [HttpDelete("{id}"), Authorize]
         public async Task<IActionResult> Delete(int id) {
-            var run = await _context.Runs.Where(r => r.Id == id).Include(r => r.Box.Grants).SingleOrDefaultAsync();
+            var run = await _context.Runs.Include(r => r.Box.Grants).SingleOrDefaultAsync(r => r.Id == id);
             if (run == null) {
                 return NotFound();
             }
 
-            var sub = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            if (!run.Box.Grants.Any(g => g.Sub == sub && (
-                    run.End < DateTime.Now ?
-                    true :
-                    g.Type == Grant.Types.Owner))
-                ) {
+            var sub = User.GetIdentifier();
+            if (DateTime.Now > run.Start ? run.Box.IsOwner(sub) : run.Box.HasWriteAccess(sub)) {
                 return Forbid();
             }
 
