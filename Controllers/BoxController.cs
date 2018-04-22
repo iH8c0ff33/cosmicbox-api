@@ -19,6 +19,16 @@ namespace CosmicBox.Controllers {
         [HttpGet]
         public async Task<IEnumerable<Box>> GetAll() => await _context.Boxes.ToListAsync();
 
+        [HttpGet("{id}/runs")]
+        public async Task<IActionResult> GetRuns(int id) {
+            var box = await _context.Boxes.Include(b => b.Runs).SingleOrDefaultAsync(b => b.Id == id);
+            if (box == null) {
+                return NotFound();
+            }
+
+            return Ok(box.Runs);
+        }
+
         [HttpPost, Authorize("addBoxes")]
         [ProducesResponseType(typeof(Box), 201)]
         [ProducesResponseType(typeof(void), 400)]

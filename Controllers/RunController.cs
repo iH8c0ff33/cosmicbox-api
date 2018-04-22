@@ -17,15 +17,7 @@ namespace CosmicBox.Controllers {
         public RunController(CosmicContext context) => _context = context;
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] int boxId) {
-            var box = await _context.Boxes.SingleOrDefaultAsync(b => b.Id == boxId);
-            if (box == null) {
-                return NotFound();
-            }
-
-            var runs = _context.Runs.Where(r => r.Box == box);
-            return Ok(await runs.ToListAsync());
-        }
+        public IEnumerable<Run> GetAll() => _context.Runs;
 
         [HttpPost, Authorize]
         [ProducesResponseType(typeof(Run), 201)]
