@@ -11,24 +11,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CosmicBox.Controllers {
     [Route("api/[controller]"), Produces("application/json")]
-    public class RunController : Controller {
+    [ApiController]
+    public class RunController : ControllerBase {
         private readonly CosmicContext _context;
 
         public RunController(CosmicContext context) => _context = context;
 
         [HttpGet]
-        public IEnumerable<Run> GetAll() => _context.Runs;
+        [ProducesResponseType(typeof(List<Run>), 200)]
+        public async Task<ActionResult<List<Run>>> GetAll() => await _context.Runs.ToListAsync();
 
         [HttpPost, Authorize]
         [ProducesResponseType(typeof(Run), 201)]
         [ProducesResponseType(typeof(void), 400)]
         [ProducesResponseType(typeof(void), 404)]
-        [ProducesResponseType(typeof(IEnumerable<Run>), 409)]
-        public async Task<IActionResult> Create([FromBody] Run run) {
-            if (!ModelState.IsValid) {
-                return BadRequest();
-            }
-
+        [ProducesResponseType(typeof(List<Run>), 409)]
+        public async Task<ActionResult<Run>> Create(Run run) {
             var box = await _context.Boxes.Include(b => b.Grants).SingleOrDefaultAsync(b => b.Id == run.BoxId);
             if (box == null) {
                 return NotFound();
@@ -56,17 +54,17 @@ namespace CosmicBox.Controllers {
         [HttpGet("{id}", Name = "GetRun")]
         [ProducesResponseType(typeof(Run), 200)]
         [ProducesResponseType(typeof(void), 404)]
-        public async Task<IActionResult> GetById(int id) {
+        public async Task<ActionResult<Run>> GetById(int id) {
             var run = await _context.Runs.SingleOrDefaultAsync(r => r.Id == id);
             if (run == null) {
                 return NotFound();
             }
 
-            return Ok(run);
+            return run;
         }
 
         [HttpDelete("{id}"), Authorize]
-        public async Task<IActionResult> Delete(int id) {
+        public async Task<ActionResult> Delete(int id) {
             var run = await _context.Runs.Include(r => r.Box.Grants).SingleOrDefaultAsync(r => r.Id == id);
             if (run == null) {
                 return NotFound();

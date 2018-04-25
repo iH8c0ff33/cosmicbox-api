@@ -11,28 +11,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CosmicBox.Controllers {
     [Route("api/[controller]")]
-    public class BoxController : Controller {
+    [ApiController]
+    public class BoxController : ControllerBase {
         private readonly CosmicContext _context;
 
         public BoxController(CosmicContext context) => _context = context;
 
         [HttpGet]
-        public async Task<IEnumerable<Box>> GetAll() => await _context.Boxes.ToListAsync();
+        [ProducesResponseType(typeof(List<Box>), 200)]
+        public async Task<ActionResult<List<Box>>> GetAll() => await _context.Boxes.ToListAsync();
 
         [HttpGet("{id}/runs")]
-        public async Task<IActionResult> GetRuns(int id) {
+        [ProducesResponseType(typeof(List<Run>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<List<Run>>> GetRuns(int id) {
             var box = await _context.Boxes.Include(b => b.Runs).SingleOrDefaultAsync(b => b.Id == id);
             if (box == null) {
                 return NotFound();
             }
 
-            return Ok(box.Runs);
+            return box.Runs;
         }
 
         [HttpPost, Authorize("addBoxes")]
-        [ProducesResponseType(typeof(Box), 201)]
-        [ProducesResponseType(typeof(void), 400)]
-        public async Task<IActionResult> Create() {
+        [ProducesResponseType(typeof(Box), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<Box>> Create() {
             var box = new Box();
 
             var grant = Grant.Owner(User.GetIdentifier(), box);
@@ -41,13 +45,14 @@ namespace CosmicBox.Controllers {
             _context.Grants.Add(grant);
             await _context.SaveChangesAsync();
 
-            return new ObjectResult(box);
+            return box;
         }
 
         [HttpDelete("{id}"), Authorize]
-        [ProducesResponseType(typeof(void), 204)]
-        [ProducesResponseType(typeof(void), 404)]
-        public async Task<IActionResult> Delete(int id) {
+        [ProducesResponseType(204)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult> Delete(int id) {
             var box = await _context.Boxes.Include(b => b.Grants).SingleOrDefaultAsync(b => b.Id == id);
             if (box == null) {
                 return NotFound();
@@ -59,6 +64,7 @@ namespace CosmicBox.Controllers {
 
             _context.Boxes.Remove(box);
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
     }
