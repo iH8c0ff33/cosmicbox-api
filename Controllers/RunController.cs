@@ -24,6 +24,7 @@ namespace CosmicBox.Controllers {
         [HttpPost, Authorize]
         [ProducesResponseType(typeof(Run), 201)]
         [ProducesResponseType(typeof(void), 400)]
+        [ProducesResponseType(typeof(void), 403)]
         [ProducesResponseType(typeof(void), 404)]
         [ProducesResponseType(typeof(List<Run>), 409)]
         public async Task<ActionResult<Run>> Create(Run run) {
@@ -61,6 +62,18 @@ namespace CosmicBox.Controllers {
             }
 
             return run;
+        }
+
+        [HttpGet("{id}/traces")]
+        [ProducesResponseType(typeof(List<Trace>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<List<Trace>>> GetTraces(int id) {
+            var run = await _context.Runs.Include(r => r.Traces).SingleOrDefaultAsync(r => r.Id == id);
+            if (run == null) {
+                return NotFound();
+            }
+
+            return run.Traces;
         }
 
         [HttpDelete("{id}"), Authorize]
