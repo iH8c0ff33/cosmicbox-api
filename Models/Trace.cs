@@ -16,5 +16,8 @@ namespace CosmicBox.Models {
         public int RunId { get; set; }
         [JsonIgnore]
         public Run Run { get; set; }
+
+        public bool BelongsTo(Run run) =>
+            Timestamp >= run.Start && Timestamp < run.End;
     }
 }
